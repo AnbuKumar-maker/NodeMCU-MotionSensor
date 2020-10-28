@@ -1,0 +1,84 @@
+#include <ESP8266WiFi.h>
+const char* host = "maker.ifttt.com"; 
+const char* ssid = "..........";// wifi ssid 
+const char* password = ".........";// wifi pass
+int pir = 5;// D1 of nodemcu
+int buz = 4;//D2 of nodemcu
+int val;
+WiFiServer server(80);
+
+void setup() {
+   pinMode(pir,INPUT);
+    pinMode(buz,INPUT);
+  WiFi.begin(ssid, password);
+  server.begin(); 
+}
+ int value = 1;
+void loop() {
+  val = digitalRead(pir);// reading pir
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+  while(!client.available()){
+    delay(1);
+  }
+  String request = client.readStringUntil('\r');
+  client.flush(); 
+   int x = 0;//initialy lock is in off pos
+  if (request.indexOf("/action_page.php?fname=1234") != -1)  {// set activation pass here after fname=
+        x = 1;//i will explain it you later
+           if( val == 1){//if value of pir sensor is 1 or high 
+       if (value == 1){// now the magic starts 
+       WiFiClient client;
+       const int httpPort = 80;
+       if (!client.connect(host, httpPort)) {
+        return;
+       }    
+String url = ".....................................";  //please put your own key   
+client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");  
+       value = 0;
+       digitalWrite(buz,1);
+       delay(5000);
+       digitalWrite(buz,0);
+       delay(500);
+       digitalWrite(buz,1);
+       delay(5000);
+       digitalWrite(buz,0);
+       delay(5000);
+       }
+    }
+  }
+  else {
+    value = 1;
+    delay(500);
+    }
+  if (request.indexOf("/action_page.php?fname=4321") != -1)  {// set deactivation pass after fname=
+    setup();//when you type deactivation code it goes to setup
+  }
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/html");
+  client.println(""); 
+  client.println("<!DOCTYPE HTML>");
+  client.println("<html>");
+  client.println("<center>");//to display it on center
+  client.println("<h1 style=background-color:DodgerBlue;>ROOM SECURITY:</h1>");// here you can also change the backgroundcolor and heading
+  client.println("</center>");
+  client.println("<h3 style=color:Blue;>LOCK STATUS:</h3>");// here you can also change text color or heading
+  if(x == 1){// x holds the value that lock is on or off
+    client.print("Lock is ON");// if lock is on
+  }
+  else{
+    client.print("Lock is OFF");// if lock is off
+  }
+  client.print("<form action=/action_page.php>");
+  client.print("<label for=fname>Commands for lock:</label><br>");
+  client.print("<input type=text id=fname name=fname><br><br>");
+  client.print("<input type=submit value=lock/unlock>");//here you can also change the value from lock/unlock to submit
+  client.print("</form>");
+  client.print("<center>");
+  client.print("<h1 style=background-color:DodgerBlue;>BY AMAAN JAVED</h1>");// here you can also chenge the heading and color
+  client.print("</center>");
+  client.println("</html>");
+  delay(1); 
+}
